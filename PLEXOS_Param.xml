@@ -1,0 +1,9 @@
+<?xml version="1.0" standalone="yes"?>
+<UndocumentedParam xmlns="http://tempuri.org/UndocumentedParam.xsd">
+ 
+	<Production>
+		<ParameterName> UseCumulativeGasDemandMethod </ParameterName>
+		<Value> True </Value>
+	</Production>
+	
+</UndocumentedParam>
