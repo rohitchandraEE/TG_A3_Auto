@@ -5,10 +5,7 @@ import subprocess as sp
 
 import pandas as pd
 from datetime import datetime
-# from openpyxl import *
-import openpyxl
 import builtins
-import xlwings # update formula in excel sheet
 
 from shutil import copyfile
 
@@ -91,10 +88,7 @@ def update_dataset(original_ds, df_JKM, No_of_Steps, Sc_name, Add_Purch): #
         collectionDict = db.FetchAllCollectionIds()
         db.AddMembership(collectionDict["ModelScenarios"], "Model "+Sc_name, Sc_name)
 
-        # mem_id = db.GetMembershipID(CollectionEnum.SystemConstraints, 'System', 'JKM Sales Max')
-        # print("Constraint ID is ", mem_id)
         collectionDict = db.FetchAllCollectionIds()
-        # mem_id = db.GetMembershipID(collectionDict["SystemConstraints"], 'System', 'JKM Sales Max')
                                     
         # Add properties
         '''
@@ -160,39 +154,17 @@ def update_dataset(original_ds, df_JKM, No_of_Steps, Sc_name, Add_Purch): #
         # save the data set
         db.Close()
 
-#Execute = db.GetModelsToExecute('rts2.xml',\
-                            #'Base',\
-                           # '')
-							
+
 #Execute the model 
-def run_model(plexospath, filename, foldername, modelname):
+def run_model(plexospath, filename, modelname):
 # def run_model(plexospath, filename, foldername, modelname, username, password): #with credentials
     # launch the model on the local desktop
     # The \n argument is very important because it allows the PLEXOS
     # engine to terminate after completing the simulation
     print("B. Run the model")
-    sp.call([os.path.join(plexospath, 'PLEXOS64.exe'), filename, r'\n', r'\o', foldername, r'\m', modelname])
-    # sp.call([os.path.join(plexospath, 'PLEXOS64.exe'), filename, r'\n', r'\o', foldername, r'\m', modelname, r'\cu', username, r'\cp', password]) #with username
+    # sp.call([os.path.join(plexospath, 'PLEXOS64.exe'), filename, r'\n', r'\o', foldername, r'\m', modelname]) #original
+    sp.call([os.path.join(plexospath, 'PLEXOSLauncher.exe'), filename, r'\n', r'\c', " 8", r'\s', "S, 8", r'\m', modelname])
     
-
-def parse_logfile(pattern, foldername, modelname, linecount = 1):
-    
-    currentlines = 0
-    lines = []
-    regex = re.compile(pattern)
-    
-    for line in builtins.open(os.path.join(foldername, 'Model {} Solution'.format(modelname), 'Model ( {} ) Log.txt'.format(modelname))):
-        if len(regex.findall(line)) > 0:
-            currentlines = linecount
-            
-        if currentlines > 0:
-            lines.append(line)
-            currentlines -= 1
-            
-        if currentlines == 0 and len(lines) > 0:
-            retval = '\n'.join(lines)
-            lines = []
-            yield retval
 
 def query_results(sol_file):
     #Query Results
@@ -204,12 +176,6 @@ def query_results(sol_file):
     sol = Solution()
     sol.Connection(sol_file)
     sol.DisplayAlerts = False
-
-    # print("Update EXCEL sheet with new results")
-
-    # # connect to excel
-    # book = load_workbook(xlsx_file)
-    # writer = pd.ExcelWriter(xlsx_file, mode='a', if_sheet_exists='overlay', engine='openpyxl')
 
     '''
     Simple query: works similarly to PLEXOS Solution Viewer
@@ -249,7 +215,6 @@ def query_results(sol_file):
 
     # NOTE: Because None is a reserved word in Python we must use the Parse() method to get the value of AggregationEnum.None
     aggregation_none = Enum.Parse(clr.GetClrType(AggregationTypeEnum), "None")
-    # aggregation_object = Enum.Parse(clr.GetClrType(AggregationTypeEnum), "Object")
 
     # read outputs and save to Dataframe
     # # Collect market cost
@@ -268,14 +233,10 @@ def query_results(sol_file):
               DateTime.Parse('2022-04-01'), \
               DateTime.Parse('2023-03-31'), \
                                      '0', \
-                                     '', \
+                                     '0',#sample list \
                                      '', \
                                      aggregation_none, \
                                      'Gas Market')
-    # print("Printing names of columns")
-    # for test in range(35):
-    #     print(listresultsMS.Columns[test])
-    #     print(test)
 
     if listresultsJKMC is None:
         print('No results')
@@ -286,8 +247,6 @@ def query_results(sol_file):
         columns = [listresultsJKMC.Columns[33]]
         # print(columns)
         df_JKMC = pd.DataFrame([[row.GetProperty.Overloads[String](n) for n in columns] for row in listresultsJKMC], columns=columns)
-
-    # print(df_JKMC)
 
     # JKM revenue
     listresultsJKMR = sol.QueryToList(SimulationPhaseEnum.MTSchedule, \
@@ -300,21 +259,15 @@ def query_results(sol_file):
               DateTime.Parse('2022-04-01'), \
               DateTime.Parse('2023-03-31'), \
                                      '0', \
-                                     '', \
+                                     '0', \
                                      '', \
                                      aggregation_none, \
                                      'Gas Market')
     if listresultsJKMR is None:
         print('No results')
     else:
-        # Create a DataFrame with a column for each column in the results
-        # columns = "Spot market (JKM)"
-        # columns = [r'Spot market \B\JKM\D\\']
         columns = [listresultsJKMR.Columns[33]]
-        # print(columns)
         df_JKMR = pd.DataFrame([[row.GetProperty.Overloads[String](n) for n in columns] for row in listresultsJKMR], columns=columns)
-    # print("revenue")
-    # print(df_JKMR)
 
     # JEPX sales
     listresultsJEPXR = sol.QueryToList(SimulationPhaseEnum.MTSchedule, \
@@ -327,29 +280,21 @@ def query_results(sol_file):
               DateTime.Parse('2022-04-01'), \
               DateTime.Parse('2023-03-31'), \
                                      '0', \
-                                     '', \
+                                     '0', \
                                      '', \
                                      aggregation_none, \
                                      'Electricity Market')
-    # print("Printing names of columns")
-    # for test in range(35):
-    #     print(listresultsMS.Columns[test])
-    #     print(test)
 
     if listresultsJEPXR is None:
         print('No results')
     else:
         # Create a DataFrame with a column for each column in the results
-        # columns = "Spot market (JKM)"
-        # columns = [r'Spot market \B\JKM\D\\']
         columns = [listresultsJEPXR.Columns[33]]
-        # print(columns)
+
         df_JEPXR = pd.DataFrame([[row.GetProperty.Overloads[String](n) for n in columns] for row in listresultsJEPXR], columns=columns)
 
-    # print(df_JEPXR)
-
     #Generator V&OM costs
-    # print(str(sol.FetchAllPropertyEnums() ))
+
     propId3 = sol.PropertyName2EnumId("System", "Generator", "Generators", "VO&M Cost")
     listresultsGenVOM = sol.QueryToList(SimulationPhaseEnum.MTSchedule, \
               collectionDict["SystemGenerators"], \
@@ -361,7 +306,7 @@ def query_results(sol_file):
               DateTime.Parse('2022-04-01'), \
               DateTime.Parse('2023-03-31'), \
                                      '0', \
-                                     '', \
+                                     '0', \
                                      '', \
                                      aggregation_none)
 
@@ -369,14 +314,10 @@ def query_results(sol_file):
         print('No results')
     else:
         # Create a DataFrame with a column for each column in the results
-        # columns = "Spot market (JKM)"
-        # columns = [r'Spot market \B\JKM\D\\']
         columns = ['3M-Power Plant-1', '3M-Power Plant-2', '7M-Power Plant-1']
-        # columns = [listresultsGenVOM.Columns[33]]
-        # print(columns)
         df_GenVOM = pd.DataFrame([[row.GetProperty.Overloads[String](n) for n in columns] for row in listresultsGenVOM], columns=columns)
 
-    # print(df_GenVOM)
+    print(df_GenVOM)
 
     # add sums of columns to dataframe
     df_outputs = {"JKM Cost": df_JKMC.values.sum(), "JKM Revenue": df_JKMR.values.sum(),
@@ -398,25 +339,19 @@ def main():
 
     Scenario_names = ["A3-SS", "A3-SB", "A3-BB", "A3-BS"]
 
-    # Purchase_addons = {'Sc_Name': ["A3-SS", "A3-SB", "A3-BB", "A3-BS"],
-    #     'Add_on_1': [0, 0, 70000, 70000],
-    #                    'Add_on_2': [0, 70000, 70000, 0]}
     Pur_add = {"A3-SS": [0, 0],
                "A3-SB": [0, 10920], #3640*3 in BBTU for 3 ships
                "A3-BB": [ 10920,  10920],
                "A3-BS": [ 10920, 0]}
 
-    # df_pa = pd.DataFrame(Purchase_addons)
-    # print(df_pa)
-
     # empty dataframe to store results
     df_results = pd.DataFrame(columns = ["Sc.Name", "JKM Cost", "JKM Revenue", "JEPX Revenue", "Generation VOM"])
 
+    # # Test split execution using PLEXOSLauncher
+    # run_model(plexospath, PLEXOS_db, str("Scenario A2"))
 
     # set up for loop to cycle through the models for A3
-    for sc_name_str in Scenario_names: #Scenario_names
-        # add_pur = df_pa.loc[df_pa['Sc_Name'] == sc_str]
-        # print(add_pur[["Add_on_1",'Add_on_2']].to_string(index=False, header=False))
+    for sc_name_str in Scenario_names: #Scenario_names ["A3-BB"]
 
         Add_Pur = Pur_add[sc_name_str]
 
@@ -425,37 +360,21 @@ def main():
         Model_name = "Model "+sc_name_str
         print(Model_name)
 
-        # # Execute model
-        # run_model(plexospath, PLEXOS_db, '.', str("Model "+sc_name_str)) # can add the username and password at the end
+        # Execute model
+        run_model(plexospath, PLEXOS_db, str("Model "+sc_name_str)) # can add the username and password at the end
 
-        # # Check log file
-        # for res in parse_logfile('MT Schedule Completed','.','1. LT_Cost_Optimal_90',25):
-        #     print(res)
-
-        # # update result to datafrane
+        # # update result to dataframe
         zipfilename = "Model "+Model_name+" Solution/Model "+Model_name+" Solution.zip"
-        # print(zipfilename)
+
         sc_outputs = query_results(zipfilename)
         dict_1 = {"Sc.Name": sc_name_str, "JKM Cost": sc_outputs["JKM Cost"], "JKM Revenue": sc_outputs["JKM Revenue"],
                   "JEPX Revenue": sc_outputs["JEPX Revenue"], "Generation VOM": sc_outputs["Generation VOM"]}
-        # print(dict_1)
+
         df_results = df_results._append(dict_1, ignore_index = True)
 
     print("Summary of Results across the models:")
-    print(df_results)
-
-    # # Check for convergence
-    # convg, new_lcoe = check_convg(LCOE_val, Excel_sheet)
-    # LCOE_val = new_lcoe
-    # tariff_list.append(new_lcoe)
-    # if convg == True:
-    #     break
-    #
-    # count += 1
-    # print("Iter no: ",count)
-
-    # print("Tariff list: ", tariff_list)
-
+    df_results["Total ($)"] = -df_results["JKM Cost"] + df_results["JKM Revenue"] + df_results["JEPX Revenue"] - df_results["Generation VOM"]
+    print(df_results.to_string())
 
 if __name__ == '__main__':
     main()
