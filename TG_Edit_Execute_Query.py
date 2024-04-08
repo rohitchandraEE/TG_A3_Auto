@@ -357,6 +357,7 @@ def main():
 
         # # # add the constraints on JKM sales and purchases
         # update_dataset(PLEXOS_db, df_JKM, No_of_steps, sc_name_str, Add_Pur)
+
         Model_name = "Model "+sc_name_str
         print(Model_name)
 
